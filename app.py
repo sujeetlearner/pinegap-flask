@@ -1,14 +1,4 @@
-from flask import Flask
-app = Flask(__name__)
-
-@app.route('/')
-def hello_world():
-    return 'Hello from Koyeb'
-@app.route('/showTranscript')
-def showTranscript():
-    dependency = MergeAlgoDependency()
-    transcript = dependency.merge()
-    return transcript['Sentences'][0]
+from flask import Flask, render_template, request, redirect
 
 import urllib.request
 from PyPDF2 import PdfReader
@@ -49,6 +39,19 @@ from nltk.tokenize import sent_tokenize
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from collections import defaultdict
+app = Flask(__name__)
+
+@app.route('/')
+def hello_world():
+    return 'Hello from Koyeb'
+@app.route('/showTranscript', methods=['GET'])
+def showTranscript():
+    merge_algo = request.args.get('transcript')
+    dependency = MergeAlgoDependency(merge_algo = merge_algo)
+    transcript = dependency.merge()
+    print(transcript['Sentences'][0])
+    return transcript['Sentences'][0]
+
 
 class MergeAlgoDependency():
     def __init__(self, merge_algo = 'windowTechnique', input_filename = "transcript.docx", output_filename = "transcript_merged.xlsx", threshold = 0.2, max_merge_len = 3, resolution = 10):
