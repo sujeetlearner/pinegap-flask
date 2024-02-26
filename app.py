@@ -31,6 +31,7 @@ import spacy
 import numpy as np
 from docx import Document
 from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
 import networkx as nx
 
 
@@ -70,7 +71,7 @@ class MergeAlgoDependency():
                 print('windowTechnique merged')
                 return comDf
             elif self.merge_algo == 'NetworkGraphMergeAlgo':
-                comDf = utilityObject.MergeDataFrameUsingNetworkAlgo()
+                comDf = utilityObject.MergeDataFrameUsingNetworkAlgo('tf-idf')
                 print('NetworkGraphMergeAlgo merged')
                 return comDf
         except Exception as e:
@@ -297,16 +298,21 @@ class Utility():
         print(comDf.head())
         return comDf
 
-    def MergeDataFrameUsingNetworkAlgo(self):
+    def MergeDataFrameUsingNetworkAlgo(self,embedding_model):
         embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
         df = self.readLocalDOCX(f'{self.filename}')
         # Tokenize text into sentences
         sentences = df[0][:].tolist()
-        embeddings = embedding_model.encode(sentences, show_progress_bar=True)
-
-        # Compute cosine similarity between sentences
-        similarity_matrix = self.cosine_similarity(embeddings)
-        print(similarity_matrix)
+        # Create TF-IDF vectorizer
+        if embedding_model == 'tf-idf':
+            vectorizer = TfidfVectorizer()
+            tfidf_matrix = vectorizer.fit_transform(sentences)
+            # Compute cosine similarity between sentences
+            similarity_matrix = cosine_similarity(tfidf_matrix)
+        else:
+            embeddings = embedding_model.encode(sentences, show_progress_bar=True)
+            # Compute cosine similarity between sentences
+            similarity_matrix = self.cosine_similarity(embeddings)
         # Create graph
         G = nx.Graph()
 
