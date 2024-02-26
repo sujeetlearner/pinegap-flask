@@ -50,7 +50,7 @@ def showTranscript():
     merge_algo = request.args.get('transcript')
     dependency = MergeAlgoDependency(merge_algo = merge_algo)
     transcript = dependency.merge()
-    print(transcript['Sentences'][0])
+    print(transcript.head())
     return transcript['Sentences'][0]
 
 
@@ -298,18 +298,19 @@ class Utility():
         print(comDf.head())
         return comDf
 
-    def MergeDataFrameUsingNetworkAlgo(self,embedding_model):
-        embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+    def MergeDataFrameUsingNetworkAlgo(self,embedding_model_string):
         df = self.readLocalDOCX(f'{self.filename}')
         # Tokenize text into sentences
         sentences = df[0][:].tolist()
         # Create TF-IDF vectorizer
-        if embedding_model == 'tf-idf':
+        if embedding_model_string == 'tf-idf':
             vectorizer = TfidfVectorizer()
             tfidf_matrix = vectorizer.fit_transform(sentences)
+
             # Compute cosine similarity between sentences
             similarity_matrix = cosine_similarity(tfidf_matrix)
         else:
+            embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
             embeddings = embedding_model.encode(sentences, show_progress_bar=True)
             # Compute cosine similarity between sentences
             similarity_matrix = self.cosine_similarity(embeddings)
@@ -328,28 +329,33 @@ class Utility():
         # Detect communities using Louvain method
         partition = nx.community.louvain_communities(G, resolution=10, seed=123)
 
-        print(partition)
         new_partition = []
         for x in partition:
             x = sorted(x)
             new_partition.append(x)
         partition = new_partition
-        print(partition)
+
         # Group sentences into communities
         communities = defaultdict(list)
         for community_id, node in enumerate(partition):
             for item in node:
                 communities[community_id].append(sentences[item])
 
-        comDf = pd.DataFrame(columns= 'Sentences')
+        comDf = pd.DataFrame(columns= ['Sentences'])
+        data = []
         for community_id, sentences in communities.items():
-            print(f"Community {community_id + 1}:")
             t1 = []
-            t1.append(f"\nCommunity {community_id + 1}:")
+            # Iterate through sentences in the current community
             for sentence in sentences:
-                print("- ", sentence)
+                # Convert non-string objects to strings
+                if not isinstance(sentence, str):
+                    sentence = str(sentence)
+                # Append the sentence to the list
                 t1.append(sentence)
-        comDf = comDf.append({'Sentences': "".join(t1)}, ignore_index=True)
+
+            concatenated_sentence = "".join(t1)
+            data.append({'Sentences': concatenated_sentence})
+        comDf = pd.DataFrame(data=data, columns=['Sentences'])
         return comDf
 
 
